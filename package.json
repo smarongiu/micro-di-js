@@ -1,8 +1,24 @@
 {
+  "name": "@smarongiu/micro-di-js",
+  "version": "1.0.0",
+  "main": "./src/index.js",
+  "scripts": {
+    "test": "jest"
+  },
   "devDependencies": {
-    "jest": "^27.5.1"
+    "jest": "^27.5.1",
+    "jest-cli": "^27.5.1",
+    "@types/jest": "^27.4.1"
   },
   "dependencies": {
     "lodash": "^4.17.21"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:smarongiu/micro-di-js.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/",
+    "access": "restricted"
   }
 }

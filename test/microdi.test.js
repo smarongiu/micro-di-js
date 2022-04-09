@@ -1,21 +1,96 @@
-const { describe, test } = require("@jest/globals");
+const { describe, test, beforeEach } = require("@jest/globals");
 const { MicroDIContainer } = require("../src/microdi");
 
-describe('MicroDIContainer', () => {
-    const di = new MicroDIContainer()
+describe('MicroDIContainer: basic tests', () => {
+    let di
 
-    test('register', () => {
+    beforeEach(() => {
+        di = new MicroDIContainer()
+    })
+
+    test('register interface by factory', () => {
         di.register(IFoo, () => new Foo())
-            .register('toto', () => 'TOTO')
-            .register('a', ctx => new A(ctx.b))
-            .register('c', () => new C())
-            .register('d', () => 'I am d')
-            .register('b', ctx => new B(ctx.c, ctx.d))
+        const x = di.resolve(IFoo)
+        expect(x).toBeInstanceOf(Foo)
+        expect(x.hi()).toEqual('Hi!')
+    })
 
-        const c = di.context
-        console.log(di.context.toto);
+    test('register named factory', () => {
+        di.register('c', () => new C())
+        expect(di.resolve('c')).toBeInstanceOf(C)
+    })
+
+    test('register named factory with simple dependency', () => {
+        di.register('depC', () => new C())
+        di.register('depA', ctx => new A(ctx.depC))
+        
+        expect(di.resolve('depA')).toBeInstanceOf(A)
+        expect(di.resolve('depA').b).toBe(di.resolve('depC'))
+    })
+
+    test('register a named string', () => {
+        di.register('title', () => 'MyTitle')
+        expect(di.resolve('title')).toEqual('MyTitle')
+    })
+
+    test('register a named object', () => {
+        di.register('aDep', () => ({ title: 'test', count: 42 }))
+        expect(di.resolve('aDep').title).toEqual('test')
+        expect(di.resolve('aDep').count).toEqual(42)
+    })
+
+    test('register a circular dependency should throw on resolve', () => {
+        di.register('x', ctx => new A(ctx.x))
+        expect(() => di.resolve('x')).toThrow()
+    })
+
+    test('resolve not register type should throw', () => {
+        expect(() => di.resolve('unkown')).toThrow()
     })
 });
+
+describe('MicroDIContainer: real-life container case', () => {
+    let di = new MicroDIContainer(), ctx
+    
+    beforeAll(() => {
+        di.register('depA', ctx => new A(ctx.depB, 'Lucy'))
+        di.register('depB', ctx => new B(ctx.depC, ctx.myInfo))
+        di.register('depC', () => new C())
+        di.register('myInfo', ctx => ({ name: ctx.myName, title: 'Test' }))
+        di.register('myName', 'TestMe')
+        ctx = di.context
+    })
+
+    test('resolve myName', () => {
+        expect(ctx.myName).toEqual('TestMe')
+    })
+
+    test('resolve myInfo', () => {
+        expect(ctx.myInfo).toEqual({
+            name: 'TestMe',
+            title: 'Test'
+        })
+    })
+
+    test('resolve depC', () => {
+        expect(ctx.depC).toBeInstanceOf(C)
+    })
+
+    test('resolve depB', () => {
+        expect(ctx.depB).toBeInstanceOf(B)
+        expect(ctx.depB.c).toBe(ctx.depC)
+        expect(ctx.depB.d).toBe(ctx.myInfo)
+    })
+
+    test('resolve depA', () => {
+        expect(ctx.depA).toBeInstanceOf(A)
+        expect(ctx.depA.b).toBe(ctx.depB)
+        expect(ctx.depA.name).toBe('Lucy')
+    })
+})
+
+
+
 
 /** @interface */
 class IFoo {
@@ -28,12 +103,13 @@ class Foo {
 }
 
 class A extends IFoo {
-    constructor(b) {
+    constructor(b, name) {
         super()
         this.b = b
+        this.name = name
     }
 
-    hi() { return `Hi from A, and ${this.b}` }
+    hi() { return `Hi from ${this.name}!` }
 }
 
 class B extends IFoo {
@@ -43,9 +119,7 @@ class B extends IFoo {
         this.d = d
     }
 
-    hi() { return `Hi from B, and ${this.c} and ${this.d}` }
+    hi() { return `Hi from B!` }
 }
 
-class C {
-    constructor() { }
-}
+class C {}

@@ -1,9 +1,5 @@
 const _ = require('lodash')
 
-/**
- * @typedef {Object<string,any>} MicroDIContext
- */
-
 class MicroDIContainer {
     constructor() {
         this._factories = {}
@@ -33,7 +29,7 @@ class MicroDIContainer {
      */
     register(type, factory) {
         const name = nameOf(type)
-        this._factories[name] = factory(this.context)
+        this._factories[name] = factory
         return this
     }
 
@@ -69,7 +65,12 @@ class MicroDIContainer {
         if (instance) return instance
 
         const factory = this._factories[name]
-        if (factory) {
+
+        if (_.isNil(factory)) {
+            throw new Error(`Instance not found for type: ${type}`)
+        }
+
+        if (_.isFunction(factory)) {
             if (!this._dependencyStack[name]) this._dependencyStack[name] = []
             const stack = this._dependencyStack[name]
             if (_.includes(stack, name)) {
@@ -81,10 +82,12 @@ class MicroDIContainer {
             this._instances[name] = instance
 
             delete this._dependencyStack[name]
-            return instance
+        } else {
+            instance = factory
+            this._instances[name] = instance
         }
 
-        throw new Error(`Instance not found for type: ${type}`)
+        return instance
     }
 }
 
