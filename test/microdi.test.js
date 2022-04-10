@@ -44,10 +44,66 @@ describe('MicroDIContainer: basic tests', () => {
         expect(() => di.resolve('x')).toThrow()
     })
 
-    test('resolve not register type should throw', () => {
+    test('resolve a not registered type should throw', () => {
         expect(() => di.resolve('unkown')).toThrow()
     })
+
+    test('merge another container', () => {
+        di.register('title', () => 'Hey')
+
+        const module1 = new MicroDIContainer()
+            .register('text1', () => 'module1 text')
+
+        di.mergeContainer(module1)
+
+        expect(di.context.title).toEqual('Hey')
+        expect(di.context.text1).toEqual('module1 text')
+    })
 });
+
+
+describe('MicroDIContainer: using context', () => {
+    let di, ctx
+
+    beforeEach(() => {
+        di = new MicroDIContainer()
+        ctx = di.context
+    })
+
+    test('register named factory', () => {
+        ctx.c = () => new C()
+        expect(ctx.c).toBeInstanceOf(C)
+    })
+
+    test('register named factory with simple dependency', () => {
+        ctx.depC = () => new C()
+        ctx.depA = () => new A(ctx.depC)
+        
+        expect(ctx.depA).toBeInstanceOf(A)
+        expect(ctx.depA.b).toBe(ctx.depC)
+    })
+
+    test('register a named string', () => {
+        di.register('title', () => 'MyTitle')
+        expect(di.resolve('title')).toEqual('MyTitle')
+    })
+
+    test('register a named object', () => {
+        ctx.aDep = () => ({ title: 'test', count: 42 })
+        expect(ctx.aDep.title).toEqual('test')
+        expect(ctx.aDep.count).toEqual(42)
+    })
+
+    test('register a circular dependency should throw on resolve', () => {
+        ctx.x = ctx => new A(ctx.x)
+        expect(() => ctx.x).toThrow()
+    })
+
+    test('get a not registered type should throw', () => {
+        expect(() => ctx.unkown).toThrow()
+    })
+});
+
 
 describe('MicroDIContainer: real-life container case', () => {
     let di = new MicroDIContainer(), ctx
