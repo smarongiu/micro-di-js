@@ -2,8 +2,8 @@
 Minimalist dependency injection container for plain javascript
 
 ## Introduction
-MicroDI is a simple dependency container for plain javascript projects or for for legacy code you want to inject dependencies with a almost zero impact on existing code. 
-If you are on a typescript baseline probably this is not for you.
+MicroDI is a simple dependency container for plain javascript projects or for for legacy code you want to inject dependencies with a almost zero impact on existing code. MicroDI does not rely on annotations and does not use type mapping configuration. The focus is on simplicity and fast integration.
+If you are on a typescript baseline you should look at other frameworks like Inversify instead.
 
 ## Features
 - Register types (like an interface or a class) or names
